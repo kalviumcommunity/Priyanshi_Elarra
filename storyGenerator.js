@@ -3,6 +3,7 @@
 
 const readline = require('readline');
 const { generateStoryPrompts, generateGenreSpecificPrompts } = require('./promptBuilder');
+const { buildDynamicPrompt, validateMood, validateStoryLength, getAvailableMoods, getAvailableStoryLengths } = require('./dynamicPrompt');
 
 // Create readline interface
 const rl = readline.createInterface({
@@ -42,9 +43,10 @@ function printMenu() {
   console.log(colorize('📋 Available Options:', 'bright'));
   console.log(colorize('1. 🚀 Quick Story Generator', 'green'));
   console.log(colorize('2. 🎨 Detailed Story Creator', 'green'));
-  console.log(colorize('3. 🧪 Test Multi-Shot Examples', 'green'));
-  console.log(colorize('4. 📖 View Available Genres', 'green'));
-  console.log(colorize('5. ❌ Exit', 'red'));
+  console.log(colorize('3. 🎭 Generate Story with Dynamic Prompting', 'green'));
+  console.log(colorize('4. 🧪 Test Multi-Shot Examples', 'green'));
+  console.log(colorize('5. 📖 View Available Genres', 'green'));
+  console.log(colorize('6. ❌ Exit', 'red'));
   console.log('');
 }
 
@@ -82,6 +84,33 @@ async function getStoryDetails() {
   return {
     genre: genre.toLowerCase(),
     tone: tone.toLowerCase(),
+    plotDirection: plotDirection || ''
+  };
+}
+
+async function getDynamicStoryDetails() {
+  console.log(colorize('\n📚 Dynamic Story Details:', 'bright'));
+  
+  const genre = await askQuestion('Genre (fantasy, sci-fi, romance, mystery, adventure, comedy): ');
+  const tone = await askQuestion('Tone (whimsical, inspiring, heartwarming, suspenseful, exciting, humorous): ');
+  
+  // Show available moods
+  const availableMoods = getAvailableMoods();
+  console.log(colorize(`\nAvailable moods: ${availableMoods.join(', ')}`, 'cyan'));
+  const mood = await askQuestion('Mood: ');
+  
+  // Show available story lengths
+  const availableLengths = getAvailableStoryLengths();
+  console.log(colorize(`\nAvailable story lengths: ${availableLengths.join(', ')}`, 'cyan'));
+  const storyLength = await askQuestion('Story length: ');
+  
+  const plotDirection = await askQuestion('Plot direction (optional): ');
+  
+  return {
+    genre: genre.toLowerCase(),
+    tone: tone.toLowerCase(),
+    mood: validateMood(mood),
+    storyLength: validateStoryLength(storyLength),
     plotDirection: plotDirection || ''
   };
 }
@@ -131,6 +160,31 @@ async function detailedStoryCreator() {
   await generateAndDisplayStory(input);
 }
 
+async function dynamicStoryGenerator() {
+  console.log(colorize('\n🎭 Generate Story with Dynamic Prompting', 'bright'));
+  console.log(colorize('✨ Enhanced story generation with mood and length control', 'cyan'));
+  
+  const characters = [];
+  let addMore = true;
+  
+  while (addMore) {
+    const character = await getCharacterInput();
+    characters.push(character);
+    
+    const more = await askQuestion('\nAdd another character? (y/n): ');
+    addMore = more.toLowerCase() === 'y' || more.toLowerCase() === 'yes';
+  }
+  
+  const storyDetails = await getDynamicStoryDetails();
+  
+  const input = {
+    characters: characters,
+    ...storyDetails
+  };
+  
+  await generateAndDisplayDynamicStory(input);
+}
+
 async function generateAndDisplayStory(input) {
   console.log(colorize('\n🔄 Generating your story...', 'cyan'));
   console.log(colorize('Using multi-shot prompting for better quality...', 'cyan'));
@@ -163,6 +217,45 @@ async function generateAndDisplayStory(input) {
     
   } catch (error) {
     console.log(colorize('\n❌ Error generating story:', 'red'));
+    console.log(error.message);
+  }
+}
+
+async function generateAndDisplayDynamicStory(input) {
+  console.log(colorize('\n🔄 Generating your dynamic story...', 'cyan'));
+  console.log(colorize('✨ Using enhanced prompting with mood and length control...', 'cyan'));
+  
+  try {
+    // Generate base prompts
+    const basePrompts = generateStoryPrompts(input);
+    
+    // Build dynamic prompt
+    const dynamicPrompt = buildDynamicPrompt(input, basePrompts.userPrompt);
+    
+    console.log(colorize('\n📊 Dynamic Prompt Information:', 'bright'));
+    console.log(`Base Prompt Length: ${basePrompts.userPrompt.length} characters`);
+    console.log(`Dynamic Prompt Length: ${dynamicPrompt.length} characters`);
+    console.log(`Enhancement: +${dynamicPrompt.length - basePrompts.userPrompt.length} characters`);
+    console.log(`Mood: ${colorize(input.mood, 'magenta')}`);
+    console.log(`Story Length: ${colorize(input.storyLength, 'magenta')}`);
+    
+    // Simulate story generation (replace with actual API call)
+    console.log(colorize('\n📖 Generated Dynamic Story:', 'bright'));
+    console.log(colorize('═'.repeat(60), 'cyan'));
+    
+    // For demo purposes, show a sample story with mood/length awareness
+    const sampleStory = generateDynamicSampleStory(input);
+    console.log(sampleStory);
+    
+    console.log(colorize('═'.repeat(60), 'cyan'));
+    
+    // Show the dynamic prompt for reference
+    console.log(colorize('\n🔍 Dynamic Prompt (for reference):', 'bright'));
+    console.log(colorize('Enhanced User Prompt:', 'yellow'));
+    console.log(dynamicPrompt);
+    
+  } catch (error) {
+    console.log(colorize('\n❌ Error generating dynamic story:', 'red'));
     console.log(error.message);
   }
 }
@@ -265,6 +358,165 @@ The tale of ${characters[0].name} became a reminder that every person has the po
   return story;
 }
 
+function generateDynamicSampleStory(input) {
+  const { characters, genre, tone, mood, storyLength, plotDirection } = input;
+  
+  // Adjust story based on mood and length
+  let story = '';
+  const isShort = storyLength === 'short';
+  const isLong = storyLength === 'long';
+  
+  // Mood-specific language patterns
+  const moodPatterns = {
+    mysterious: {
+      intro: "shadows danced",
+      description: "whispered secrets",
+      atmosphere: "enigmatic"
+    },
+    hopeful: {
+      intro: "light shimmered",
+      description: "promising possibilities",
+      atmosphere: "uplifting"
+    },
+    dark: {
+      intro: "shadows deepened",
+      description: "weighty atmosphere",
+      atmosphere: "somber"
+    },
+    uplifting: {
+      intro: "energy surged",
+      description: "inspiring moments",
+      atmosphere: "empowering"
+    },
+    whimsical: {
+      intro: "magic sparkled",
+      description: "delightful wonders",
+      atmosphere: "enchanting"
+    },
+    melancholic: {
+      intro: "soft light filtered",
+      description: "gentle reflections",
+      atmosphere: "contemplative"
+    },
+    intense: {
+      intro: "tension crackled",
+      description: "riveting moments",
+      atmosphere: "dramatic"
+    }
+  };
+  
+  const patterns = moodPatterns[mood] || moodPatterns.hopeful;
+  
+  if (genre === 'fantasy') {
+    if (isShort) {
+      story = `The ${patterns.atmosphere} tale of ${characters[0].name}
+
+${characters[0].name} stood where ${patterns.intro}, their ${characters[0].traits.join(', ')} nature guiding them forward. The ancient forest held ${patterns.description} that called to their ${characters[0].backstory}.
+
+"Are you ready?" a voice echoed from the shadows.
+
+${characters[0].name} nodded, their heart filled with determination. ${plotDirection || 'Their quest would reveal the magic within.'}
+
+Through trials and discovery, ${characters[0].name} learned that true power lay not in spells, but in the strength of their character. The story of ${characters[0].name} became legend, inspiring others to believe in the ${patterns.atmosphere} magic that lives within us all.`;
+    } else if (isLong) {
+      story = `The ${patterns.atmosphere} Chronicles of ${characters[0].name}
+
+In a world where ${patterns.intro} through the ancient trees, ${characters[0].name} had always felt a connection to the mystical forces that surrounded their village. Their ${characters[0].traits.join(', ')} personality had set them apart from others, and their ${characters[0].backstory} had prepared them for a destiny they couldn't yet imagine.
+
+The morning began like any other, with the soft light filtering through the canopy of the Enchanted Forest. But today felt different. The air itself seemed to hum with ${patterns.description}, and ${characters[0].name} knew that something extraordinary was about to happen.
+
+"${characters[0].name}," called the village elder, their voice carrying the weight of centuries of wisdom, "the time has come for you to discover your true purpose."
+
+${characters[0].name} approached the elder, their heart pounding with anticipation. "What do you mean, Elder?"
+
+"The ancient prophecies speak of one who will bridge the gap between our world and the realm of pure magic," the elder explained, their eyes glowing with an otherworldly light. "Your ${characters[0].traits.join(', ')} nature makes you the perfect candidate for this sacred quest."
+
+As ${characters[0].name} ventured deeper into the forest, they encountered creatures of legend—whispering spirits, talking animals, and ancient guardians who tested their resolve. Each challenge revealed new aspects of their character and strengthened their connection to the magical forces around them.
+
+"${plotDirection || 'Your journey will take you to the heart of magic itself, where you must face the ultimate test of character and courage.'}" the forest spirits whispered in unison.
+
+Through valleys of mist and mountains of crystal, ${characters[0].name} discovered that the greatest magic wasn't in the spells they could cast or the powers they could wield, but in the bonds they formed with the magical beings they encountered. Each friendship, each moment of understanding, brought them closer to their true potential.
+
+The climax of their journey came at the Crystal Heart of the Forest, where the ancient magic of the world pulsed with ${patterns.atmosphere} energy. Here, ${characters[0].name} faced their greatest challenge—not a battle of strength, but a test of wisdom and compassion.
+
+"You have proven yourself worthy," the Crystal Heart spoke, its voice resonating through the very air. "You understand that true magic lies in the connections we make and the love we share."
+
+As ${characters[0].name} returned to their village, they carried with them not just the knowledge of ancient spells, but the wisdom that the most powerful magic in the world was the magic of friendship, courage, and believing in oneself.
+
+The story of ${characters[0].name} became legend throughout the land, inspiring generations to come. Their ${patterns.atmosphere} journey proved that sometimes the greatest adventures are the ones that lead us to discover the magic within our own hearts.`;
+    } else {
+      story = `The ${patterns.atmosphere} Quest of ${characters[0].name}
+
+${characters[0].name} stood at the edge of the mystical forest, where ${patterns.intro} between the ancient trees. Their ${characters[0].traits.join(', ')} nature had always drawn them to this place, and their ${characters[0].backstory} had prepared them for this moment.
+
+"Are you ready for this adventure?" a voice echoed from the shadows, carrying ${patterns.description} that made ${characters[0].name}'s heart race with excitement.
+
+${characters[0].name} nodded, their determination shining in their eyes. "I've been waiting for this moment my whole life," they replied, thinking of all the stories they'd heard about the magical realm that lay beyond the forest's edge.
+
+As they ventured deeper into the enchanted woods, the magic grew stronger. ${plotDirection || 'Their quest would test their courage and reveal secrets beyond imagination.'} The air itself seemed to shimmer with possibility, and every step brought new wonders and challenges.
+
+Through trials and tribulations, ${characters[0].name} discovered that true magic wasn't in spells or potions, but in the strength of their character and the bonds they formed along the way. Each obstacle they overcame revealed new depths of their ${characters[0].traits.join(', ')} nature.
+
+The story of ${characters[0].name} became legend, inspiring others to believe in the ${patterns.atmosphere} magic that lives within us all. Their journey proved that sometimes the greatest adventures are the ones that lead us to discover our true selves.`;
+    }
+  } else if (genre === 'science fiction') {
+    if (isShort) {
+      story = `The ${patterns.atmosphere} Discovery of ${characters[0].name}
+
+In the year 2157, ${characters[0].name} worked where ${patterns.intro} around their laboratory. Their ${characters[0].traits.join(', ')} personality had driven them to push boundaries.
+
+"Dr. ${characters[0].name}, the quantum processor is ready," announced the AI assistant.
+
+${characters[0].name} smiled, remembering their ${characters[0].backstory}. ${plotDirection || 'This breakthrough would revolutionize technology.'}
+
+As the experiment began, reality itself seemed to bend. The quantum processor created ${patterns.description} that had never existed before.
+
+Through this discovery, ${characters[0].name} realized that the future wasn't something to fear, but something to create. Their work would inspire generations, proving that human ingenuity combined with compassion could solve any challenge.`;
+    } else {
+      story = `The ${patterns.atmosphere} Future: ${characters[0].name}'s Revolution
+
+In the year 2157, ${characters[0].name} worked tirelessly in their advanced laboratory, surrounded by holographic displays and floating data streams where ${patterns.intro} with every calculation. Their ${characters[0].traits.join(', ')} personality had always driven them to push the boundaries of what was possible, and their ${characters[0].backstory} had prepared them for this momentous day.
+
+"Dr. ${characters[0].name}, the quantum processor is ready for testing," announced the AI assistant, its voice carrying ${patterns.description} that made the air itself seem to vibrate with possibility.
+
+${characters[0].name} smiled, remembering the years of research and the countless nights spent perfecting their theories. This breakthrough could change everything. ${plotDirection || 'Their invention would revolutionize how humanity interacts with technology and each other.'}
+
+As the experiment began, reality itself seemed to bend around them. The quantum processor didn't just compute—it created possibilities that had never existed before, opening doors to ${patterns.atmosphere} discoveries that would reshape the future of human civilization.
+
+Through this discovery, ${characters[0].name} realized that the future wasn't something to fear, but something to create. Their work would inspire generations to come, proving that human ingenuity combined with compassion could solve any challenge and create a world filled with ${patterns.description}.
+
+The legacy of ${characters[0].name} lived on, not just in their inventions, but in the hope they gave to humanity—a reminder that the most ${patterns.atmosphere} future is one we build together.`;
+    }
+  } else {
+    // Generic story for other genres
+    if (isShort) {
+      story = `The ${patterns.atmosphere} Story of ${characters[0].name}
+
+${characters[0].name} was known for their ${characters[0].traits.join(', ')} qualities. Their ${characters[0].backstory} had prepared them for this moment.
+
+The day began where ${patterns.intro}, but fate had other plans. ${plotDirection || 'A mysterious event would change everything.'}
+
+As the story unfolded, ${characters[0].name} discovered that being a ${characters[0].role} wasn't about having all the answers, but about having the courage to ask the right questions.
+
+Through challenges and triumphs, ${characters[0].name} learned that the greatest adventures aren't found in distant lands, but within the human heart. The tale of ${characters[0].name} became a reminder that every person has the power to be the hero of their own ${patterns.atmosphere} story.`;
+    } else {
+      story = `The ${patterns.atmosphere} Tale of ${characters[0].name}
+
+${characters[0].name} was known throughout the land for their ${characters[0].traits.join(', ')} qualities. Their ${characters[0].backstory} had prepared them for this moment, though they didn't know it yet.
+
+The day began where ${patterns.intro}, creating an atmosphere of ${patterns.description} that seemed to whisper of changes to come. Fate had other plans for ${characters[0].name}, plans that would test their character and reveal their true potential.
+
+As the story unfolded, ${characters[0].name} discovered that being a ${characters[0].role} wasn't about having all the answers, but about having the courage to ask the right questions and the wisdom to learn from every experience. ${plotDirection || 'A mysterious event would change everything they thought they knew about themselves and the world around them.'}
+
+Through challenges and triumphs, moments of doubt and flashes of insight, ${characters[0].name} learned that the greatest adventures aren't found in distant lands, but within the human heart. Each obstacle overcome and each lesson learned brought them closer to understanding their true purpose.
+
+The tale of ${characters[0].name} became a reminder that every person has the power to be the hero of their own story, and that the most ${patterns.atmosphere} journeys are the ones that lead us to discover the strength and beauty within ourselves.`;
+    }
+  }
+  
+  return story;
+}
+
 async function testMultiShotExamples() {
   console.log(colorize('\n🧪 Testing Multi-Shot Examples', 'bright'));
   
@@ -357,7 +609,7 @@ async function main() {
   while (true) {
     printMenu();
     
-    const choice = await askQuestion('Enter your choice (1-5): ');
+    const choice = await askQuestion('Enter your choice (1-6): ');
     
     switch (choice) {
       case '1':
@@ -367,12 +619,15 @@ async function main() {
         await detailedStoryCreator();
         break;
       case '3':
-        await testMultiShotExamples();
+        await dynamicStoryGenerator();
         break;
       case '4':
-        showAvailableGenres();
+        await testMultiShotExamples();
         break;
       case '5':
+        showAvailableGenres();
+        break;
+      case '6':
         console.log(colorize('\n👋 Thank you for using Elarra Story Generator!', 'green'));
         console.log(colorize('✨ Happy storytelling!', 'cyan'));
         rl.close();
@@ -400,7 +655,10 @@ if (require.main === module) {
 module.exports = {
   main,
   generateAndDisplayStory,
+  generateAndDisplayDynamicStory,
   getCharacterInput,
-  getStoryDetails
+  getStoryDetails,
+  getDynamicStoryDetails,
+  dynamicStoryGenerator
 };
 
