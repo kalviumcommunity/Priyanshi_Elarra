@@ -1,5 +1,5 @@
 # Priyanshi_Elarra
-# ✨ Elarra – AI Storyteller from Your Imagination
+# ✨ Elarra – AI Storyteller from Your Imaginationl
 
 ## 💡 Project Vision
 
