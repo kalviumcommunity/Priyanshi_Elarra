@@ -17,7 +17,7 @@ function buildOneShotSystemPrompt() {
     'If the user provides specific characters, genre, or tone, follow those closely.',
     'If plot direction is given, use it as a guiding thread.',
     'If not, invent a compelling plot that fits the characters and genre.',
-    'Write in clear, vivid prose. Use dialogue and description as appropriate.',
+    'Write in clear, vivid prose. Use dialogue and appropriate.',
     'Never break character as the storyteller.'
   ].join(' ');
 }
@@ -32,12 +32,7 @@ function askQuestion(rl, query) {
   return new Promise(resolve => rl.question(query, answer => resolve(answer)));
 }
 
-/**
- * Runs a one-shot prompting demo: shows a single example, then a real request.
- * - Logs the example prompt
- * - Logs the final one-shot prompt (system + user message)
- * - Logs a mock generated story
- */
+
 async function runOneShotDemo() {
   console.log('📖 One-Shot Prompting Demo for Elarra Story Generator\n');
 
